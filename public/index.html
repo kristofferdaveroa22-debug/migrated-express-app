@@ -3,38 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <title>Native Node App</title>
+
     <style>
-        body { font-family: Arial; max-width: 600px; margin: 40px auto; padding: 20px; }
-        .task { padding: 10px; border: 1px solid #ccc; margin: 5px 0; }
-        input, button { padding: 8px; margin: 5px 0; }
+        body {
+            font-family: Arial;
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+
+        .task {
+            padding: 10px;
+            border: 1px solid #ccc;
+            margin: 5px 0;
+        }
+
+        input,
+        button {
+            padding: 8px;
+            margin: 5px 0;
+        }
     </style>
 </head>
+
 <body>
     <h1>My Tasks</h1>
 
     <div>
-        <input type="text" id="taskInput" placeholder="Enter a new task">
+        <input
+            type="text"
+            id="taskInput"
+            placeholder="Enter a new task"
+        >
         <button onclick="addTask()">Add Task</button>
     </div>
 
-    <div id="taskList"></div>    <script>
+    <div id="taskList"></div>
+
+    <script>
         // Fetch tasks from the server
         async function loadTasks() {
             const response = await fetch('/api/tasks');
             const tasks = await response.json();
             const list = document.getElementById('taskList');
-            list.innerHTML = tasks.map(t => `<div class="task">${t}</div>`).join('');
+
+            list.innerHTML = tasks
+                .map(t => <div class="task">${t}</div>)
+                .join('');
         }
 
         // Add a new task to the server
         async function addTask() {
             const input = document.getElementById('taskInput');
             const task = input.value;
+
             if (!task) return;
 
             await fetch('/api/tasks', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json'
+                },
                 body: JSON.stringify({ task })
             });
 

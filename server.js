@@ -1,85 +1,43 @@
 // server.js
-const http = require('http');
-const fs = require('fs');
+const express = require('express');
+const cors = require('cors');
 const path = require('path');
-const { URL } = require('url');
 
 // In-memory "database" (an array of tasks)
 let tasks = ['Learn Node.js', 'Build a server', 'Feel the pain of manual parsing'];
 
+const app = express();
 const PORT = 3000;
 
-// Create the server
-const server = http.createServer((req, res) => {
-  // Parse the incoming URL
-  const parsedUrl = new URL(req.url, `http://localhost:${PORT}`);
-  const pathname = parsedUrl.pathname;
-  const method = req.method;
+// Middleware
+app.use(express.json()); // Parse JSON bodies (replaces manual chunk collection!)
+app.use(cors()); // Enable CORS
+app.use(express.static(path.join(__dirname, 'public'))); // Serve static files (replaces manual fs.readFile!)
 
-  console.log(`${method} request received for: ${pathname}`);
-
-  // --- ROUTE 1: Serve the HTML frontend ---
-  if (pathname === '/' && method === 'GET') {
-    const filePath = path.join(__dirname, 'public', 'index.html');
-
-    fs.readFile(filePath, (err, data) => {
-      if (err) {
-        res.writeHead(500, { 'Content-Type': 'text/plain' });
-        res.end('Server Error: Could not read HTML file');
-        return;
-      }
-      res.writeHead(200, { 'Content-Type': 'text/html' });
-      res.end(data);
-    });
-    return;
-  }
-
-  // --- ROUTE 2: GET /api/tasks ---
-  if (pathname === '/api/tasks' && method === 'GET') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(tasks));
-    return;
-  }
-
-  // --- ROUTE 3: POST /api/tasks ---
-  if (pathname === '/api/tasks' && method === 'POST') {
-    let body = '';
-
-    // Collect data chunks
-    req.on('data', chunk => {
-      body += chunk.toString();
-    });
-
-    req.on('end', () => {
-      try {
-        const parsed = JSON.parse(body);
-        const newTask = parsed.task;
-
-        if (!newTask) {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Task is required' }));
-          return;
-        }
-
-        tasks.push(newTask);
-        console.log(`✅ New task added: ${newTask}`);
-
-        res.writeHead(201, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ message: 'Task created', task: newTask }));
-      } catch (error) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Invalid JSON' }));
-      }
-    });
-    return;
-  }
-
-  // --- ROUTE 4: 404 Fallback ---
-  res.writeHead(404, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({ error: 'Route not found' }));
+// Routes
+app.get('/api/tasks', (req, res) => {
+  res.json(tasks); // Automatically sets Content-Type to application/json
 });
 
-// Start listening
-server.listen(PORT, () => {
-  console.log(`🚀 Server running at http://localhost:${PORT}`);
+app.post('/api/tasks', (req, res) => {
+  const newTask = req.body.task; // Automatically parsed by express.json() middleware!
+
+  if (!newTask) {
+    return res.status(400).json({ error: 'Task is required' });
+  }
+
+  tasks.push(newTask);
+  console.log(`✅ New task added: ${newTask}`);
+
+  res.status(201).json({ message: 'Task created', task: newTask });
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ error: 'Route not found' });
+});
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`🚀 Express server running at http://localhost:${PORT}`);
 });
